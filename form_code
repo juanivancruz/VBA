@@ -1,0 +1,175 @@
+Option Explicit
+
+Private Sub CmdExit_Click()
+'   Unload userform
+    Unload UFLinRegChart
+End Sub
+
+Private Sub cmdOK_Click()
+Dim i As Integer, j As Integer, k As Integer, L As Integer, N As Integer
+Dim x(), y()
+Dim Name As String, linkname As String, ChartRange As String, summaryrange As String
+
+'Create new sheet
+Worksheets.Add
+ActiveSheet.Name = "Summary"
+
+'add titles and names
+Cells(1, 1) = "Summary of regressions"
+For i = 0 To LbxVarsAsXs.ListCount - 1
+    Cells(4 + i, 1) = i + 1
+    Cells(4 + i, 2) = Me.LbxVarsAsXs.List(i)
+Next i
+
+For j = 0 To LbxVarsAsYs.ListCount - 1
+    Cells(3, 3 + j) = Me.LbxVarsAsYs.List(j)
+Next j
+
+'dimension to X and Y arrays
+ReDim x(rangerows - 1, 1)
+ReDim y(rangerows - 1, 1)
+
+' start looping to get R squares and graphs in new sheets
+For i = 0 To LbxVarsAsXs.ListCount - 1
+    For j = 1 To rangecolumns
+        ' look for and fill the Xs in the columns of the user range
+        If UserRange(1, j) = Me.LbxVarsAsXs.List(i) Then
+            For k = 1 To rangerows - 1
+                x(k, 1) = UserRange(k + 1, j)
+            Next k
+            ' look for and fill the Ys in the columns of the user range
+            For L = 0 To LbxVarsAsYs.ListCount - 1
+                For N = 1 To rangecolumns
+                    If UserRange(1, N) = Me.LbxVarsAsYs.List(L) Then
+                        For k = 1 To rangerows - 1
+                        y(k, 1) = UserRange(k + 1, N)
+                        Next k
+                        
+                        'calculate slope, intercept and Rsquared
+                        m = Application.WorksheetFunction.Slope(y, x)
+                        Rsquared = Application.WorksheetFunction.RSq(y, x)
+                        b = Application.WorksheetFunction.Intercept(y, x)
+                        
+                        'Paste rsquared in the summary table
+                        Sheets("Summary").Select
+                        Cells(i + 4, L + 3) = Rsquared
+                        
+                        'create worksheet and paste values
+                        Worksheets.Add
+                        Name = Me.LbxVarsAsXs.List(i) & " vs " & Me.LbxVarsAsYs.List(L)
+                        ActiveSheet.Name = Name
+                        ActiveWindow.DisplayGridlines = False
+                        'fill with titles and names
+                        Cells(1, 1) = "Linear regresion for " & Me.LbxVarsAsXs.List(i) & " vs " & Me.LbxVarsAsYs.List(L)
+                        Cells(2, 1) = "Index"
+                        Cells(2, 2) = Me.LbxVarsAsXs.List(i)
+                        Cells(2, 3) = Me.LbxVarsAsYs.List(L)
+                        Cells(2, 5) = Me.LbxVarsAsYs.List(L) & " ="
+                        Cells(2, 6) = m & "*" & Me.LbxVarsAsXs.List(i) & " + " & b
+                        Cells(3, 5) = "Rsquared ="
+                        Cells(3, 6) = Rsquared
+                        'add a back link to Summary page
+                        Range("I1").Select
+                        ActiveSheet.Hyperlinks.Add Anchor:=Selection, Address:="", SubAddress:= _
+                        "Summary!A1", TextToDisplay:="back"
+                        'add data
+                        For k = 1 To rangerows - 1
+                        Cells(k + 2, 1) = k
+                        Cells(k + 2, 2) = x(k, 1)
+                        Cells(k + 2, 3) = y(k, 1)
+                        Next k
+                        'Paste rsquared in the summary table and add link in summary
+                        Sheets("Summary").Select
+                        linkname = "'" & Name & "'" & "!A1"
+                        Cells(i + 4, L + 3).Select
+                        ActiveSheet.Hyperlinks.Add Anchor:=Selection, Address:="", SubAddress:= _
+                        linkname, TextToDisplay:=""
+                        Cells(i + 4, L + 3) = Rsquared
+                        Sheets(Name).Select
+                        
+                        'Add Regression chart
+                        ChartRange = "B2:C" & (rangerows + 1)
+                        ActiveSheet.Shapes.AddChart2(240, xlXYScatter).Select
+                        Application.CutCopyMode = False
+                        ActiveChart.SetSourceData Source:=Range(ChartRange)
+                        ActiveChart.FullSeriesCollection(1).Trendlines.Add Type:=xlLinear, Forward _
+                            :=0, Backward:=0, DisplayEquation:=1, DisplayRSquared:=1, Name:= _
+                            "Linear (Y)"
+                        
+                        'set axis names
+                         ActiveChart.ChartTitle.Select
+                         ActiveChart.ChartTitle.Text = "Linear Regression of " & Me.LbxVarsAsXs.List(i) & " vs " & Me.LbxVarsAsYs.List(L)
+                         Selection.Format.TextFrame2.TextRange.Characters.Text = "Linear Regression of " & Me.LbxVarsAsXs.List(i) & " vs " & Me.LbxVarsAsYs.List(L)
+                         With Selection.Format.TextFrame2.TextRange.Characters(1, 10).ParagraphFormat
+                             .TextDirection = msoTextDirectionLeftToRight
+                             .Alignment = msoAlignCenter
+                         End With
+                         
+                         ActiveChart.SetElement (msoElementPrimaryCategoryAxisTitleAdjacentToAxis)
+                         Selection.Format.TextFrame2.TextRange.Characters.Text = Me.LbxVarsAsXs.List(i)
+                         With Selection.Format.TextFrame2.TextRange.Characters.ParagraphFormat
+                             .TextDirection = msoTextDirectionLeftToRight
+                             .Alignment = msoAlignCenter
+                         End With
+                        
+
+                        
+                    Else
+                    End If
+                Next N
+            Next L
+        Else
+        End If
+    Next j
+Next i
+
+Sheets("Summary").Select
+ActiveWindow.DisplayGridlines = False
+
+End Sub
+
+Private Sub CmdX_Click()
+
+Dim i As Integer
+
+'   add all those columns that are selected
+    For i = 0 To LbxTitles.ListCount - 1
+        If Me.LbxTitles.Selected(i) = True Then
+            Me.LbxVarsAsXs.AddItem LbxTitles.List(i)
+        Else
+        End If
+    Next i
+'   remove selected items from columns listbox
+    For i = Me.LbxTitles.ListCount - 1 To 0 Step -1
+        If Me.LbxTitles.Selected(i) = True Then
+            Me.LbxTitles.RemoveItem i
+        Else
+        End If
+    Next i
+End Sub
+
+
+
+Private Sub CmdY_Click()
+
+Dim i As Integer
+
+'   add all those columns that are selected
+    For i = 0 To LbxTitles.ListCount - 1
+        If Me.LbxTitles.Selected(i) = True Then
+            Me.LbxVarsAsYs.AddItem LbxTitles.List(i)
+        Else
+        End If
+    Next i
+'   remove selected items from columns listbox
+    For i = Me.LbxTitles.ListCount - 1 To 0 Step -1
+        If Me.LbxTitles.Selected(i) = True Then
+            Me.LbxTitles.RemoveItem i
+        Else
+        End If
+    Next i
+End Sub
+
+Private Sub LbxTitles_Click()
+
+End Sub

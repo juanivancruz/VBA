@@ -1,0 +1,38 @@
+Option Explicit
+Public rangerows As Integer, rangecolumns As Integer
+Public UserRange(), subsetdata(), controlsplit(), testsplit()
+Public datatitles()
+Public currentrange As Range
+Public Rsquared As Single, m As Single, b As Single
+
+Sub LinRegChart()
+
+Dim i As Integer
+
+'   Count rows and columns and assign to rangerows and rangecolumns
+    rangerows = ActiveCell.CurrentRegion.Rows.Count
+    rangecolumns = ActiveCell.CurrentRegion.Columns.Count
+
+    ReDim UserRange(rangerows, rangecolumns)
+'   Assign current region as UserRange
+    UserRange = ActiveCell.CurrentRegion.Value
+    
+    Set currentrange = ActiveCell.CurrentRegion
+    
+    'dimension datatitles array and fill it
+    ReDim datatitles(2, rangecolumns)
+    For i = 1 To rangecolumns
+        datatitles(1, i) = UserRange(1, i)
+        datatitles(2, i) = i
+    Next i
+
+
+'   fill the column listbox
+    For i = 1 To rangecolumns
+        UFLinRegChart.LbxTitles.AddItem UserRange(1, i)
+    Next i
+    
+'   load userform
+    UFLinRegChart.Show vbModeless
+
+End Sub
